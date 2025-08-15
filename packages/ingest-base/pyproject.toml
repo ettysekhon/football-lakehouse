@@ -1,0 +1,24 @@
+[project]
+name = "ingest-base"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "football-common",
+    "pandas>=2.2,<3",
+    "pyarrow>=21.0.0",
+    "pyspark==3.5.6",
+    "requests>=2.32,<3",
+]
+
+[project.scripts]
+ingest-base = "ingest_base.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ingest_base"]
+

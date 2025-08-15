@@ -1,0 +1,20 @@
+[project]
+name = "football-common"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.8,<3",
+    "python-dotenv>=1,<2",
+]
+
+[project.scripts]
+football-common = "football_common.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/football_common"]
