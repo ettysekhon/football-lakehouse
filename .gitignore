@@ -11,3 +11,8 @@ wheels/
 
 # MinIO
 data/minio/
+data/rest/
+data/postgres/
+data/pgadmin/
+
+NOTES.md
