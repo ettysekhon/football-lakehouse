@@ -10,11 +10,19 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-echo "Starting all infrastructure services..."
-docker compose up -d
+# Check if metastore is already initialised
+echo "🔍 Checking metastore initialisation..."
+if docker compose ps postgres 2>/dev/null | grep -q "Up" && docker compose exec postgres psql -U hive -d metastore_db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | grep -q "[8-9][0-9]\|[1-9][0-9][0-9]"; then
+    echo "Metastore already initialised, starting services..."
+    docker compose up -d
+else
+    echo "Metastore not initialised. Running PostgreSQL setup..."
+    ./init-metastore.sh
+    # Services are already started by init-metastore.sh
+fi
 
-echo "⏳ Waiting for services to start..."
-sleep 10
+echo "Waiting for services to start..."
+sleep 5
 
 echo ""
 echo "Service Status:"

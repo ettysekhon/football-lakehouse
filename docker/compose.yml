@@ -50,6 +50,7 @@ services:
       METASTORE_DB_PASS: password
       METASTORE_DB_DRIVER: org.postgresql.Driver
       METASTORE_JDBC_URL: jdbc:postgresql://postgres:5432/metastore_db
+      SKIP_SCHEMA_INIT: true
     volumes:
       - ./postgresql.jar:/opt/hive-metastore/lib/postgresql.jar
       - ./metastore-site.xml:/opt/hive-metastore/conf/metastore-site.xml

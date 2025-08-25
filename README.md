@@ -21,27 +21,43 @@ Minimal, local lakehouse for football analytics with:
 
 ## Quick Start
 
-### Option 1: Quick Start
+### Option 1: Quick Start (PostgreSQL)
+
+Ensures PostgreSQL metastore is properly initialised for new setup:
 
 ```bash
 cd docker
 ./start-lakehouse.sh
 ```
 
-### Option 2: Manual Start
+This automatically detects if PostgreSQL metastore needs initialisation and handles it correctly.
 
-Get the entire lakehouse running in 3 commands:
+### Option 2: Manual Start (PostgreSQL Setup)
+
+If you want explicit control over the initialisation:
+
+```bash
+cd docker
+
+# Initialise PostgreSQL metastore (first time only)
+./init-metastore.sh
+
+# For subsequent runs, just start services
+docker compose up -d
+```
+
+### Option 3: Basic Start (May use Derby!)
 
 ```bash
 # 1. Start all infrastructure
 cd docker
 docker compose up -d
 
-# 2. Start Jupyter Lab
-docker compose exec -d spark jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/iceberg/notebooks
+# 2. Check if PostgreSQL metastore is working
+./check-database.sh
 
-# 3. Start Spark UI (optional - in new terminal)
-docker compose exec spark pyspark --conf spark.ui.enabled=true --conf spark.ui.port=8080 --conf spark.ui.host=0.0.0.0 --conf spark.driver.host=0.0.0.0
+# 3. If Derby detected, fix with:
+./init-metastore.sh
 ```
 
 **All services will be available at:**
@@ -192,17 +208,77 @@ docker compose up -d minio trino
 docker compose up -d
 ```
 
-### Manual Metastore Initialization
+### Metastore Database Setup (PostgreSQL vs Derby)
 
-If the metastore fails to initialise automatically:
+**IMPORTANT**: This lakehouse is configured to use PostgreSQL for the Hive Metastore database. However, the Apache Hive Docker image has a known issue where it defaults to Derby database during initialisation.
+
+#### **Recommended Setup (PostgreSQL)**
+
+For production and development use, PostgreSQL is the recommended metastore database:
 
 ```bash
-# Verify files are mounted correctly
-docker compose exec metastore ls -l /opt/hive-metastore/conf/metastore-site.xml
-docker compose exec metastore ls -l /opt/hive-metastore/lib/postgresql.jar
+./init-metastore.sh
+```
 
-# Initialise schema manually (first time only)
-docker compose exec metastore schematool -dbType postgres -initSchema --verbose
+If you need to manually Initialise the PostgreSQL metastore:
+
+```bash
+# 1. Start PostgreSQL first
+docker compose up -d postgres
+
+# 2. Wait for PostgreSQL to be ready
+sleep 5
+
+# 3. Initialise the metastore schema manually
+docker compose exec metastore cat /opt/hive/scripts/metastore/upgrade/postgres/hive-schema-4.1.0.postgres.sql | docker compose exec -T postgres psql -U hive -d metastore_db
+
+# 4. Start other services
+docker compose up -d
+```
+
+#### **Verification**
+
+To verify PostgreSQL metastore is working:
+
+```bash
+# Check metastore tables exist
+docker compose exec postgres psql -U hive -d metastore_db -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';"
+
+# Should show ~83 tables
+
+# Verify specific metastore tables
+docker compose exec postgres psql -U hive -d metastore_db -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('DBS', 'TBLS', 'COLUMNS_V2') ORDER BY tablename;"
+```
+
+#### **Derby Warning**
+
+The Docker image may fall back to Derby if PostgreSQL setup fails. Signs you're using Derby:
+
+- Metastore logs show `jdbc:derby:;databaseName=metastore_db`
+- No tables visible in pgAdmin
+- Poor performance and single-user limitations
+
+If this happens, stop services and use the manual PostgreSQL initialisation above.
+
+### Helper Scripts
+
+The `docker/` directory contains several helper scripts:
+
+- **`./start-lakehouse.sh`** - Smart startup (auto-detects PostgreSQL setup)
+- **`./init-metastore.sh`** - Initialise PostgreSQL metastore (first time setup)
+- **`./check-database.sh`** - Verify database setup and detect Derby usage
+
+```bash
+cd docker
+
+# Check current database status
+./check-database.sh
+
+# Initialise or fix PostgreSQL setup
+./init-metastore.sh
+
+# Smart startup (recommended)
+./start-lakehouse.sh
 ```
 
 ### Configuration Files

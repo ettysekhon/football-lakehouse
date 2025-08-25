@@ -37,6 +37,12 @@
     <value>password</value>
   </property>
 
+  <!-- Force auto-schema creation for PostgreSQL -->
+  <property>
+    <name>datanucleus.schema.autoCreateAll</name>
+    <value>true</value>
+  </property>
+
   <!-- Hive Warehouse Configuration -->
   <property>
     <name>metastore.warehouse.dir</name>
@@ -62,11 +68,6 @@
   <!-- Schema Verification -->
   <property>
     <name>hive.metastore.schema.verification</name>
-    <value>false</value>
-  </property>
-  
-  <property>
-    <name>datanucleus.schema.autoCreateAll</name>
     <value>false</value>
   </property>
   
