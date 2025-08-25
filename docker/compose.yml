@@ -82,5 +82,6 @@ services:
       - ../notebooks:/home/iceberg/notebooks
     ports:
       - "8888:8888" # Jupyter (if you start it)
-      - "8082:8080" # Spark UI (if you use it)
+      - "8082:8080" # Spark UI primary port
+      - "8083:8081" # Spark UI fallback port
     entrypoint: ["sleep", "infinity"]

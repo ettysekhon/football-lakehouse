@@ -19,6 +19,47 @@ Minimal, local lakehouse for football analytics with:
 
 ---
 
+## Quick Start
+
+### Option 1: Quick Start
+
+```bash
+cd docker
+./start-lakehouse.sh
+```
+
+### Option 2: Manual Start
+
+Get the entire lakehouse running in 3 commands:
+
+```bash
+# 1. Start all infrastructure
+cd docker
+docker compose up -d
+
+# 2. Start Jupyter Lab
+docker compose exec -d spark jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/iceberg/notebooks
+
+# 3. Start Spark UI (optional - in new terminal)
+docker compose exec spark pyspark --conf spark.ui.enabled=true --conf spark.ui.port=8080 --conf spark.ui.host=0.0.0.0 --conf spark.driver.host=0.0.0.0
+```
+
+**All services will be available at:**
+
+- **Trino**: <http://localhost:8081>
+- **MinIO Console**: <http://localhost:9001> (admin/password)
+- **Jupyter Lab**: <http://localhost:8888> (get token with `docker compose exec spark jupyter lab list`)
+- **PgAdmin**: <http://localhost:5050> (<admin@example.com>/admin)
+- **Spark UI**: <http://localhost:8082> (when PySpark is running)
+
+**To stop everything:**
+
+```bash
+docker compose down
+```
+
+---
+
 ## Install dependencies (workspace)
 
 From the repo root:
@@ -28,37 +69,40 @@ uv lock
 uv sync
 ```
 
-## Bring up infrastructure
+## Using Spark
+
+To run Spark applications and access the Spark UI:
+
+### **Method 1: Interactive PySpark shell with UI**
 
 ```bash
-cd docker
-docker compose up -d
+docker compose exec spark pyspark --conf spark.ui.enabled=true --conf spark.ui.port=8080 --conf spark.ui.host=0.0.0.0 --conf spark.driver.host=0.0.0.0
 ```
 
-## Start Jupyter Lab (for Spark notebooks)
+**Spark UI will be available at: <http://localhost:8082>**
 
-After the containers are running, start Jupyter Lab manually:
+### **Method 2: Python script with SparkSession**
 
-```bash
-docker compose exec -d spark jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/iceberg/notebooks
+```python
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("FootballAnalytics") \
+    .config("spark.ui.enabled", "true") \
+    .config("spark.ui.port", "8080") \
+    .config("spark.ui.host", "0.0.0.0") \
+    .config("spark.driver.host", "0.0.0.0") \
+    .getOrCreate()
+
+# Your Spark code here
+print("Spark UI URL:", spark.sparkContext.uiWebUrl)
 ```
 
-Get the access token:
+### **Method 3: Jupyter notebooks**
 
-```bash
-docker compose exec spark jupyter lab list
-```
+When you create a SparkSession in Jupyter with the above configuration, the UI will be accessible at <http://localhost:8082>
 
-## Access Services
-
-Once all services are running, you can access:
-
-| Service | URL | Credentials | Purpose |
-|---------|-----|-------------|---------|
-| **Trino Web UI** | [http://localhost:8081](http://localhost:8081) | None | SQL query interface |
-| **MinIO Console** | [http://localhost:9001](http://localhost:9001) | admin/password | Object storage admin |
-| **Jupyter Lab** | [http://localhost:8888](http://localhost:8888) | Use token from above | Spark notebooks |
-| **PgAdmin** | [http://localhost:5050](http://localhost:5050) | <admin@example.com>/admin | Database administration |
+**Note**: If port 8080 is busy inside the container, Spark will automatically use port 8081, which is mapped to host port 8083.
 
 ## Service Status
 
@@ -116,13 +160,19 @@ The lakehouse consists of:
 2. Jupyter Lab not accessible
 
     - Jupyter needs to be started manually after containers are up
-    - Use the commands in the "Start Jupyter Lab" section above
+    - Use the commands in the "Quick Start" section above
 
-3. Services not starting properly
+3. Spark UI not accessible at <http://localhost:8082>
 
-- Check container status: `docker compose ps`
-- Check logs: `docker compose logs <service-name>`
-- Restart in order: `docker compose up -d postgres minio metastore trino`
+    - The Spark UI only appears when Spark applications are running
+    - Start a PySpark shell or run Spark code in Jupyter to activate it
+    - See the "Using Spark" section above for examples
+
+4. Services not starting properly
+
+    - Check container status: `docker compose ps`
+    - Check logs: `docker compose logs <service-name>`
+    - Restart in order: `docker compose up -d postgres minio metastore trino`
 
 ### Complete Reset
 
@@ -171,4 +221,5 @@ docker compose exec metastore schematool -dbType postgres -initSchema --verbose
 - **5050**: PgAdmin
 - **5432**: PostgreSQL
 - **9083**: Hive Metastore (internal)
-- **8082**: Spark UI (if enabled)
+- **8082**: Spark UI (primary, when Spark applications are running)
+- **8083**: Spark UI (fallback port, if 8080 is busy inside container)
