@@ -51,6 +51,10 @@ services:
       METASTORE_DB_DRIVER: org.postgresql.Driver
       METASTORE_JDBC_URL: jdbc:postgresql://postgres:5432/metastore_db
       SKIP_SCHEMA_INIT: true
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_EC2_METADATA_DISABLED: "true"
     volumes:
       - ./postgresql.jar:/opt/hive-metastore/lib/postgresql.jar
       - ./metastore-site.xml:/opt/hive-metastore/conf/metastore-site.xml
@@ -68,7 +72,7 @@ services:
       AWS_SECRET_ACCESS_KEY: password
       S3_ENDPOINT: http://minio:9000
       S3_PATH_STYLE_ACCESS: "true"
-      JAVA_TOOL_OPTIONS: "-Daws.region=us-east-1"
+      AWS_EC2_METADATA_DISABLED: "true"
 
   spark:
     image: tabulario/spark-iceberg:latest

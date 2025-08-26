@@ -46,7 +46,7 @@
   <!-- Hive Warehouse Configuration -->
   <property>
     <name>metastore.warehouse.dir</name>
-    <value>s3a://warehouse/</value>
+    <value>s3://warehouse/</value>
   </property>
 
   <!-- Other Metastore Configuration -->
@@ -74,5 +74,23 @@
   <property>
     <name>hive.metastore.uris</name>
     <value>thrift://metastore:9083</value>
+  </property>
+
+  <!-- S3/MinIO Configuration for Metastore -->
+  <property>
+    <name>fs.s3a.endpoint</name>
+    <value>http://minio:9000</value>
+  </property>
+  <property>
+    <name>fs.s3a.path.style.access</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>fs.s3a.connection.ssl.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>fs.s3a.impl</name>
+    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
   </property>
 </configuration>
