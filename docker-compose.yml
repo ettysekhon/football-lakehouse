@@ -1,0 +1,117 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+      - MINIO_DOMAIN=minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # MinIO Console
+    networks:
+      iceberg_net:
+        aliases:
+          - warehouse.minio # enables virtual-hosted style like warehouse.minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mc:
+    image: minio/mc:latest
+    container_name: mc
+    depends_on: [minio]
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+    entrypoint: |
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://minio:9000 admin password) do echo '...waiting for minio...' && sleep 1; done;
+      /usr/bin/mc rm -r --force minio/warehouse || true;
+      /usr/bin/mc mb minio/warehouse;
+      /usr/bin/mc policy set public minio/warehouse;
+      tail -f /dev/null
+      "
+    networks: [iceberg_net]
+
+  rest:
+    image: apache/iceberg-rest-fixture:1.8.1
+    container_name: iceberg-rest
+    depends_on: [minio, mc]
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+      - CATALOG_WAREHOUSE=s3://warehouse/
+      - CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO
+      - CATALOG_S3_ENDPOINT=http://minio:9000
+      - CATALOG_S3_PATH__STYLE__ACCESS=true
+      - CATALOG_S3_REGION=us-east-1
+    ports:
+      - "8181:8181"
+    networks: [iceberg_net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/v1/config"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  spark:
+    image: tabulario/spark-iceberg:latest
+    container_name: spark-iceberg
+    depends_on: [rest, minio, mc]
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+    entrypoint: ["bash", "-lc", "tail -f /dev/null"]
+    volumes:
+      - ./notebooks:/home/iceberg/notebooks
+      - ./spark/conf:/opt/spark/conf
+      - ./spark/events:/tmp/spark-events
+    ports:
+      - "8888:8888" # Jupyter (if you start it manually)
+      - "8081:8080" # Spark UI (Spark set to 8080 in spark-defaults.conf)
+      - "10000:10000"
+      - "10001:10001"
+    networks: [iceberg_net]
+
+  trino:
+    image: trinodb/trino:476
+    container_name: trino
+    depends_on: [rest, minio, mc]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+    networks: [iceberg_net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/info"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  superset:
+    image: apache/superset:latest
+    ports:
+      - "8088:8088"
+    environment:
+      - SUPERSET_SECRET_KEY=devkey
+    command: >
+      /bin/bash -lc "
+      superset fab create-admin --username admin --firstname Sup --lastname User --email admin@example.com --password admin;
+      superset db upgrade;
+      superset load_examples;
+      superset init;
+      superset run -p 8088 --host 0.0.0.0 --with-threads --reload --debugger
+      "
+    depends_on: [trino]
+    networks: [iceberg_net]
+
+networks:
+  iceberg_net:
+    driver: bridge
