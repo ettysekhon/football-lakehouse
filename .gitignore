@@ -13,6 +13,11 @@ wheels/
 data/minio/
 data/rest/
 
+# Superset
+data/superset/
+
+data/data
+
 # Spark
 spark/events/
 

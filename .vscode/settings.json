@@ -19,6 +19,7 @@
     "packages/football-common/src",
     "packages/ingest-base/src",
     "packages/ingest-events/src",
-    "packages/ui-streamlit/src"
+    "packages/ui-streamlit/src",
+    "superset_bootstrap.py"
   ]
 }

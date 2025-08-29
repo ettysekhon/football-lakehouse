@@ -27,6 +27,7 @@ make start
 - **MinIO Console**: <http://localhost:9001> (admin/password)
 - **Jupyter Lab**: <http://localhost:8888?token={token_id}> (get token with `docker compose exec spark jupyter lab list`)
 - **Iceberg REST Catalog**: <http://localhost:8181/v1/config>
+- **Superset**:<http://localhost:8089/sqllab/>
 - **Spark UI**: <http://localhost:8081> (kept alive by ThriftServer)
 
 **To stop everything:**
@@ -44,8 +45,8 @@ The simplified lakehouse consists of:
 │                   Query/Processing                │
 │                                                   │
 │   ┌─────────────┐        ┌──────────────┐         │
-│   │   Jupyter   │        │    Trino     │         │
-│   │  (Spark)    │        │ (SQL Engine) │         │
+│   │Spark Iceberg│        │    Trino     │         │
+│   │   (Jupyter) │        │ (SQL Engine) │         │
 │   └─────────────┘        └──────────────┘         │
 │          ▲                      ▲                 │
 │          │ metadata & data      │ metadata & data │

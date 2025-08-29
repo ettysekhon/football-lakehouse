@@ -7,6 +7,8 @@ services:
       - MINIO_ROOT_PASSWORD=password
       - MINIO_DOMAIN=minio
     command: ["server", "/data", "--console-address", ":9001"]
+    volumes:
+      - ./data/data:/data
     ports:
       - "9000:9000" # S3 API
       - "9001:9001" # MinIO Console
@@ -53,7 +55,10 @@ services:
       - CATALOG_S3_REGION=us-east-1
     ports:
       - "8181:8181"
-    networks: [iceberg_net]
+    networks:
+      iceberg_net:
+        aliases:
+          - iceberg-rest
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8181/v1/config"]
       interval: 5s
@@ -97,21 +102,44 @@ services:
 
   superset:
     image: apache/superset:latest
+    container_name: superset
     ports:
-      - "8088:8088"
+      - "8089:8088"
     environment:
       - SUPERSET_SECRET_KEY=devkey
-    command: >
-      /bin/bash -lc "
-      superset fab create-admin --username admin --firstname Sup --lastname User --email admin@example.com --password admin;
-      superset db upgrade;
-      superset load_examples;
-      superset init;
-      superset run -p 8088 --host 0.0.0.0 --with-threads --reload --debugger
-      "
+      - SUPERSET_HOME=/app/superset_home
+      - PYTHONPATH=/app/superset_home/.local/lib/python3.10/site-packages:/app/pythonpath
+      - ADMIN_USERNAME=admin
+      - ADMIN_FIRST_NAME=Sup
+      - ADMIN_LAST_NAME=User
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=admin
+    command: |
+      /bin/bash -lc '
+        pip install --no-cache-dir --user "SQLAlchemy<2.0" sqlalchemy-trino==0.5.0 trino &&
+        superset fab create-admin \
+          --username "$${ADMIN_USERNAME}" \
+          --firstname "$${ADMIN_FIRST_NAME}" \
+          --lastname "$${ADMIN_LAST_NAME}" \
+          --email "$${ADMIN_EMAIL}" \
+          --password "$${ADMIN_PASSWORD}" || true &&
+        superset db upgrade &&
+        superset init &&
+        cat /app/superset_home/superset_bootstrap.py | superset shell &&
+        superset run -p 8088 --host 0.0.0.0 --with-threads
+      '
+    volumes:
+      - ./data/superset:/app/superset_home
+      - ./superset_bootstrap.py:/app/superset_home/superset_bootstrap.py
     depends_on: [trino]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/info"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     networks: [iceberg_net]
 
 networks:
   iceberg_net:
+    name: iceberg_net
     driver: bridge
