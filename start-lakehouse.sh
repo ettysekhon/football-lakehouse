@@ -11,6 +11,7 @@ MINIO_CONSOLE_URL="http://localhost:9001"
 ICEBERG_REST_URL="http://localhost:8181/v1/config"
 JUPYTER_URL_BASE="http://localhost:8888"
 SPARK_UI_URL="http://localhost:8081"
+THRIFT_UI_URL="http://localhost:8082"
 SUPERSET_URL="http://localhost:8089"
 SUPERSET_HEALTH="${SUPERSET_URL}/health"
 
@@ -53,7 +54,7 @@ if ! $WITHOUT_THRIFT; then
     "\${SPARK_HOME}/sbin/start-thriftserver.sh \
        --hiveconf hive.server2.thrift.port=10000 \
        --hiveconf hive.server2.thrift.http.port=10001 \
-       --driver-java-options '-Dspark.ui.port=8080' \
+       --driver-java-options '-Dspark.ui.port=4041' \
        >/tmp/thriftserver.log 2>&1"
 fi
 
@@ -77,6 +78,7 @@ if ! $WITHOUT_THRIFT; then
 else
   echo "Spark UI:          ${SPARK_UI_URL} (only while a Spark job runs)"
 fi
+echo "Spark ThriftServer: ${THRIFT_UI_URL}"
 echo
 echo "To inspect logs:"
 echo "  docker compose logs -f trino"

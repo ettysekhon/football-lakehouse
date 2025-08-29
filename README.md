@@ -29,6 +29,7 @@ make start
 - **Iceberg REST Catalog**: <http://localhost:8181/v1/config>
 - **Superset**:<http://localhost:8089/sqllab/>
 - **Spark UI**: <http://localhost:8081> (kept alive by ThriftServer)
+- **ThriftServer UI**: <http://localhost:8082> (kept alive by ThriftServer)
 
 **To stop everything:**
 

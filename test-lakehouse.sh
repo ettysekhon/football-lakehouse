@@ -5,7 +5,7 @@ SPARK_BIN=/opt/spark/bin/spark-sql
 MC_BIN=/usr/bin/mc
 TRINO_BIN=trino
 
-CATALOG=football
+CATALOG=dummy_football
 SCHEMA=football_ref
 TABLE=players
 NS_PATH="${SCHEMA}"

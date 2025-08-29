@@ -79,10 +79,11 @@ services:
       - ./spark/conf:/opt/spark/conf
       - ./spark/events:/tmp/spark-events
     ports:
-      - "8888:8888" # Jupyter (if you start it manually)
-      - "8081:8080" # Spark UI (Spark set to 8080 in spark-defaults.conf)
-      - "10000:10000"
-      - "10001:10001"
+      - "8888:8888" # Jupyter
+      - "8081:4040" # Spark driver UI for notebooks / ad-hoc Spark apps
+      - "8082:4041" # ThriftServer UI
+      - "10000:10000" # thrift binary
+      - "10001:10001" # thrift http
     networks: [iceberg_net]
 
   trino:
