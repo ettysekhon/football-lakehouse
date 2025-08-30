@@ -20,6 +20,7 @@
     "packages/ingest-base/src",
     "packages/ingest-events/src",
     "packages/ui-streamlit/src",
-    "superset_bootstrap.py"
+    "superset_bootstrap.py",
+    "airflow/dags/",
   ]
 }

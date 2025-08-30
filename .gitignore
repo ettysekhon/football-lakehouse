@@ -21,4 +21,7 @@ data/data
 # Spark
 spark/events/
 
+# Airflow
+airflow/logs/
+
 NOTES.md
